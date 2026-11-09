@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard Stroberi — YOLO11n</title>
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+
+<!-- ===== SIDEBAR ===== -->
+<aside class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+        <div class="logo-icon">🍓</div>
+        <div class="logo-text">
+            <span class="logo-title">Stroberi Vision</span>
+            <span class="logo-subtitle">YOLO11n Dashboard</span>
+        </div>
+    </div>
+
+    <nav class="sidebar-nav">
+        <a href="#" class="nav-item active" data-section="dashboard">
+            <i class="fas fa-chart-pie"></i>
+            <span>Dashboard</span>
+        </a>
+        <a href="#" class="nav-item" data-section="detection">
+            <i class="fas fa-camera"></i>
+            <span>Deteksi Live</span>
+        </a>
+        <a href="#" class="nav-item" data-section="esp32">
+            <i class="fas fa-microchip"></i>
+            <span>Kontrol ESP32</span>
+        </a>
+        <a href="#" class="nav-item" data-section="settings">
+            <i class="fas fa-cog"></i>
+            <span>Pengaturan</span>
+        </a>
+    </nav>
+
+    <div class="sidebar-footer">
+        <div class="status-indicator" id="systemStatus">
+            <span class="status-dot offline"></span>
+            <span class="status-text">Sistem Idle</span>
+        </div>
+    </div>
+</aside>
+
+<!-- ===== MAIN CONTENT ===== -->
+<main class="main-content">
+
+    <!-- Top Bar -->
+    <header class="top-bar">
+        <button class="menu-toggle" id="menuToggle">
+            <i class="fas fa-bars"></i>
+        </button>
+        <h1 class="page-title" id="pageTitle">Dashboard Overview</h1>
+        <div class="top-bar-right">
+            <span class="clock" id="clock"></span>
+        </div>
+    </header>
+
+    <!-- ===== SECTION: DASHBOARD ===== -->
+    <section class="content-section active" id="section-dashboard">
+
+        <!-- Stat Cards -->
+        <div class="stat-cards">
+            <div class="stat-card">
+                <div class="stat-card-body">
+                    <div class="stat-info">
+                        <span class="stat-label">Total Deteksi</span>
+                        <span class="stat-value" id="statTotal">0</span>
+                        <span class="stat-sub" id="statElapsed">Belum dimulai</span>
+                    </div>
+                    <div class="stat-icon total">
+                        <i class="fas fa-eye"></i>
+                    </div>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-card-body">
+                    <div class="stat-info">
+                        <span class="stat-label">Matang</span>
+                        <span class="stat-value" id="statMatang">0</span>
+                        <span class="stat-sub stat-sub-matang">Siap panen</span>
+                    </div>
+                    <div class="stat-icon matang">
+                        <i class="fas fa-check-circle"></i>
+                    </div>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-card-body">
+                    <div class="stat-info">
+                        <span class="stat-label">Mentah</span>
+                        <span class="stat-value" id="statMentah">0</span>
+                        <span class="stat-sub stat-sub-mentah">Belum matang</span>
+                    </div>
+                    <div class="stat-icon mentah">
+                        <i class="fas fa-clock"></i>
+                    </div>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-card-body">
+                    <div class="stat-info">
+                        <span class="stat-label">Busuk</span>
+                        <span class="stat-value" id="statBusuk">0</span>
+                        <span class="stat-sub stat-sub-busuk">Dibuang</span>
+                    </div>
+                    <div class="stat-icon busuk">
+                        <i class="fas fa-times-circle"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Charts Row -->
+        <div class="charts-row">
+            <div class="card chart-card-wide">
+                <div class="card-header">
+                    <h3><i class="fas fa-chart-line"></i> Akumulasi Deteksi</h3>
+                    <span class="badge" id="fpsDisplay">0 FPS</span>
+                </div>
+                <div class="card-body">
+                    <canvas id="timeChart"></canvas>
+                </div>
+            </div>
+            <div class="card chart-card-small">
+                <div class="card-header">
+                    <h3><i class="fas fa-chart-pie"></i> Distribusi Kelas</h3>
+                </div>
+                <div class="card-body chart-donut-container">
+                    <canvas id="donutChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Detection Log Table -->
+        <div class="card">
+            <div class="card-header">
+                <h3><i class="fas fa-list"></i> Riwayat Deteksi Terbaru</h3>
+                <span class="badge" id="logCount">0 entri</span>
+            </div>
+            <div class="card-body table-container">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Waktu</th>
+                            <th>Matang</th>
+                            <th>Mentah</th>
+                            <th>Busuk</th>
+                            <th>Dominan</th>
+                            <th>Confidence</th>
+                        </tr>
+                    </thead>
+                    <tbody id="logTableBody">
+                        <tr>
+                            <td colspan="7" class="empty-state">
+                                Belum ada data deteksi. Mulai deteksi untuk melihat riwayat.
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </section>
+
+    <!-- ===== SECTION: DETEKSI LIVE ===== -->
+    <section class="content-section" id="section-detection">
+
+        <!-- Control Bar -->
+        <div class="control-bar">
+            <button class="btn btn-success" id="btnStart" onclick="startDetection()">
+                <i class="fas fa-play"></i> Mulai Deteksi
+            </button>
+            <button class="btn btn-danger" id="btnStop" onclick="stopDetection()" disabled>
+                <i class="fas fa-stop"></i> Hentikan
+            </button>
+            <div class="control-info">
+                <span class="badge badge-lg" id="liveFps">⏱ 0 FPS</span>
+                <span class="badge badge-lg" id="liveFrames">📷 0 frame</span>
+            </div>
+        </div>
+
+        <!-- Video Feed -->
+        <div class="video-section">
+            <div class="video-container">
+                <div class="video-placeholder" id="videoPlaceholder">
+                    <i class="fas fa-camera fa-3x"></i>
+                    <p>Klik "Mulai Deteksi" untuk mengaktifkan kamera</p>
+                </div>
+                <img id="videoFeed" src="" alt="Live Feed" style="display: none;">
+            </div>
+            <div class="live-stats-panel">
+                <h3>Deteksi Per Frame</h3>
+                <div class="live-stat-item matang">
+                    <i class="fas fa-circle"></i>
+                    <span>Matang</span>
+                    <strong id="liveMatang">0</strong>
+                </div>
+                <div class="live-stat-item mentah">
+                    <i class="fas fa-circle"></i>
+                    <span>Mentah</span>
+                    <strong id="liveMentah">0</strong>
+                </div>
+                <div class="live-stat-item busuk">
+                    <i class="fas fa-circle"></i>
+                    <span>Busuk</span>
+                    <strong id="liveBusuk">0</strong>
+                </div>
+                <hr>
+                <h3>Akumulasi Sesi</h3>
+                <div class="live-stat-item total">
+                    <i class="fas fa-chart-bar"></i>
+                    <span>Total</span>
+                    <strong id="liveTotal">0</strong>
+                </div>
+                <div class="session-time">
+                    <i class="fas fa-clock"></i>
+                    <span id="liveElapsed">00:00:00</span>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ===== SECTION: KONTROL ESP32 ===== -->
+    <section class="content-section" id="section-esp32">
+        <div class="esp32-grid">
+            <!-- Connection Panel -->
+            <div class="card">
+                <div class="card-header">
+                    <h3><i class="fas fa-plug"></i> Koneksi Serial</h3>
+                    <span class="badge" id="serialStatus">Tidak terhubung</span>
+                </div>
+                <div class="card-body">
+                    <div class="form-group">
+                        <label>Port Serial</label>
+                        <div class="input-row">
+                            <select id="serialPort" class="form-select">
+                                <option value="">-- Pilih Port --</option>
+                            </select>
+                            <button class="btn btn-outline" onclick="refreshPorts()">
+                                <i class="fas fa-sync-alt"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Baud Rate</label>
+                        <select id="baudRate" class="form-select">
+                            <option value="9600">9600</option>
+                            <option value="115200" selected>115200</option>
+                        </select>
+                    </div>
+                    <div class="btn-group">
+                        <button class="btn btn-success" id="btnSerialConnect" onclick="connectSerial()">
+                            <i class="fas fa-link"></i> Hubungkan
+                        </button>
+                        <button class="btn btn-danger" id="btnSerialDisconnect" onclick="disconnectSerial()" disabled>
+                            <i class="fas fa-unlink"></i> Putuskan
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Manual Command -->
+            <div class="card">
+                <div class="card-header">
+                    <h3><i class="fas fa-terminal"></i> Kirim Perintah Manual</h3>
+                </div>
+                <div class="card-body">
+                    <div class="form-group">
+                        <label>Perintah</label>
+                        <div class="input-row">
+                            <input type="text" id="serialCommand" class="form-input"
+                                   placeholder="Ketik perintah..." onkeydown="if(event.key==='Enter') sendSerialCommand()">
+                            <button class="btn btn-primary" onclick="sendSerialCommand()">
+                                <i class="fas fa-paper-plane"></i> Kirim
+                            </button>
+                        </div>
+                    </div>
+                    <div class="quick-commands">
+                        <label>Perintah Cepat:</label>
+                        <div class="quick-btn-row">
+                            <button class="btn btn-sm btn-outline" onclick="sendQuick('matang')">matang</button>
+                            <button class="btn btn-sm btn-outline" onclick="sendQuick('mentah')">mentah</button>
+                            <button class="btn btn-sm btn-outline" onclick="sendQuick('busuk')">busuk</button>
+                            <button class="btn btn-sm btn-outline" onclick="sendQuick('reset')">reset</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Serial Log -->
+            <div class="card serial-log-card">
+                <div class="card-header">
+                    <h3><i class="fas fa-scroll"></i> Log Serial</h3>
+                </div>
+                <div class="card-body">
+                    <div class="serial-log" id="serialLog">
+                        <div class="log-empty">Belum ada komunikasi serial.</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ===== SECTION: PENGATURAN ===== -->
+    <section class="content-section" id="section-settings">
+        <div class="settings-grid">
+            <div class="card">
+                <div class="card-header">
+                    <h3><i class="fas fa-sliders-h"></i> Parameter Deteksi</h3>
+                </div>
+                <div class="card-body">
+                    <div class="form-group">
+                        <label>Confidence Threshold: <strong id="confValue">0.75</strong></label>
+                        <input type="range" id="confSlider" class="form-range"
+                               min="0.1" max="1.0" step="0.05" value="0.75"
+                               oninput="updateConfidence(this.value)">
+                        <div class="range-labels">
+                            <span>0.1 (Sensitif)</span>
+                            <span>1.0 (Ketat)</span>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Indeks Kamera</label>
+                        <select id="cameraIndex" class="form-select">
+                            <option value="0">Kamera 0 (Default)</option>
+                            <option value="1">Kamera 1</option>
+                            <option value="2">Kamera 2</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <h3><i class="fas fa-info-circle"></i> Informasi Sistem</h3>
+                </div>
+                <div class="card-body">
+                    <div class="info-list">
+                        <div class="info-row">
+                            <span class="info-label">Model</span>
+                            <span class="info-value">YOLO11n (best.pt)</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">Arsitektur</span>
+                            <span class="info-value">YOLOv11 Nano</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">Kelas</span>
+                            <span class="info-value">matang, mentah, busuk</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">mAP50</span>
+                            <span class="info-value">~96.6%</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">Epoch Pelatihan</span>
+                            <span class="info-value">100</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">Backend</span>
+                            <span class="info-value">Flask + OpenCV</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+</main>
+
+<script src="/static/js/main.js"></script>
+</body>
+</html>
+
